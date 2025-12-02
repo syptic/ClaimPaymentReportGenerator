@@ -47,14 +47,14 @@ if claims_file and payments_file:
 
     # Aggregate payments
     claims_summary = claims_df.groupby("Referring Doctor Practice").agg(
-        Number_of_Payments=("Charges Amount", "count"),
-        Total_Payment_Value=("Charges Amount", "sum")
+        Number_of_Claims=("Charges Amount", "count"),
+        Total_Claim_Value=("Charges Amount", "sum")
     ).reset_index()
 
     # Aggregate claims
     payments_summary = payments_df.groupby("Referring Provider Practice").agg(
-        Number_of_Claims=("Insurance Payments", "count"),
-        Total_Claim_Value=("Insurance Payments", "sum")
+        Number_of_Payments=("Insurance Payments", "count"),
+        Total_Payment_Value=("Insurance Payments", "sum")
     ).reset_index()
 
     logger.debug(f"Claims summary has {len(claims_summary)} rows")
