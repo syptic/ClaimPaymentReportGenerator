@@ -178,10 +178,10 @@ def to_excel_with_viz(df: pd.DataFrame, sheet_name: str, payment_col: str, claim
                 # Data labels for clarity
                 "data_labels": {"value": True, "num_format": "$#,##0"}
             })
-            chart1.set_title({"name": f"Top 10 Practices by {sheet_name} Payment Value"})
-            chart1.set_x_axis({"name": "Practice"})
-            chart1.set_y_axis({"name": "Payment Value ($)"})
-            worksheet.insert_chart("J2", chart1, {"x_scale": 1.5, "y_scale": 1.5})
+             chart1.set_title({"name": f"Top 10 Practices by {sheet_name} Payment Value"})
+             chart1.set_x_axis({"name": "Practice"})
+             chart1.set_y_axis({"name": "Payment Value ($)"})
+             worksheet.insert_chart("J2", chart1, {"x_scale": 1.5, "y_scale": 1.5})
 
         # --- Pie chart: Claim Value Distribution (Overall) ---
         chart2 = workbook.add_chart({"type": "pie"})
@@ -204,7 +204,7 @@ def to_excel_with_viz(df: pd.DataFrame, sheet_name: str, payment_col: str, claim
                 "data_labels": {"percentage": True, "leader_lines": True},
             })
             chart2.set_title({"name": f"{sheet_name} Claim Value Distribution"})
-            worksheet.insert_chart("J20", chart2, {"x_scale": 1.3, "y_scale": 1.3})
+            worksheet.insert_chart("J35", chart2, {"x_scale": 1.3, "y_scale": 1.3})
 
     return output.getvalue()
 
@@ -433,17 +433,20 @@ if claims_file and payments_file and uds_samples and covid_samples:
             
             # Create a column for display formatting
             rate_df = summary_for_viz_uds.copy()
+            # 1. Calculate the display value (0-100)
             rate_df['Payment_Rate_Display'] = rate_df['Payment_Rate'] * 100
+            
+            # 2. RENAME THE DATAFRAME COLUMN *BEFORE* PASSING IT TO THE CHART
+            rate_df = rate_df.rename(columns={'Payment_Rate_Display': 'Payment Rate (%)'})
             
             st.bar_chart(
                 data=rate_df,
                 x="Practice_Name",
-                y="Payment_Rate_Display",
+                y="Payment Rate (%)",  # Use the new, renamed column name
                 use_container_width=True
-            ).rename(columns={'Payment_Rate_Display': 'Payment Rate (%)'})
-            # Note: Streamlit's simple bar_chart doesn't allow easy y-axis label formatting to show percent sign directly.
-            st.caption("Y-axis is Payment Rate percentage.")
-
+            )
+            # st.caption("Y-axis is Payment Rate percentage.") 
+            # Note: The .rename() part of the code is now removed from the st.bar_chart call.
 
     # --- Covid Tab ---
     with tab2:
