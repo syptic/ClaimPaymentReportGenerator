@@ -2,14 +2,11 @@ import streamlit as st
 import pandas as pd
 import logging
 import re
-import altair as alt # Import Altair for better chart control
-
-# --- Utility Functions ---
+from io import BytesIO
 
 def split_id_name(value):
     if pd.isna(value):
         return (None, None)
-    # Split on dash with optional spaces around it
     parts = re.split(r"\s*-\s*", str(value), maxsplit=1)
     if len(parts) == 2:
         return parts[0].strip(), parts[1].strip()
@@ -28,7 +25,6 @@ if not logger.handlers:  # only add handler once
 
 logger.info("✅ App started")
 
-
 st.title("Claims & Payments Summary Demo")
 
 # --- File Uploads ---
@@ -36,14 +32,13 @@ claims_file = st.file_uploader("Upload Claims Excel", type=["xlsx"])
 payments_file = st.file_uploader("Upload Payments Excel", type=["xlsx"])
 
 if claims_file and payments_file:
-    # Read Excel files
     claims_df = pd.read_excel(claims_file)
     payments_df = pd.read_excel(payments_file)
-    
+
     claims_df["Referring Doctor Practice"] = claims_df["Referring Doctor Practice"].str.strip()
     payments_df["Referring Provider Practice"] = payments_df["Referring Provider Practice"].str.strip()
 
-    # --- AGGREGATION ---
+    # Aggregate
     claims_summary = claims_df.groupby("Referring Doctor Practice").agg(
         Number_of_Claims=("Charges Amount", "count"),
         Total_Claim_Value=("Charges Amount", "sum")
@@ -54,23 +49,20 @@ if claims_file and payments_file:
         Total_Payment_Value=("Insurance Payments", "sum")
     ).reset_index()
 
-    # Merge summaries
-    final_summary = pd.merge(claims_summary, payments_summary, left_on="Referring Doctor Practice", right_on="Referring Provider Practice", how="outer")
-    
-    final_summary["Practice"] = (
-        final_summary["Referring Doctor Practice"].combine_first(final_summary["Referring Provider Practice"])
+    final_summary = pd.merge(
+        claims_summary, payments_summary,
+        left_on="Referring Doctor Practice", right_on="Referring Provider Practice", how="outer"
     )
-    
+
+    final_summary["Practice"] = final_summary["Referring Doctor Practice"].combine_first(final_summary["Referring Provider Practice"])
     final_summary[["Practice_ID", "Practice_Name"]] = final_summary["Practice"].apply(split_id_name).apply(pd.Series)
-    
-    # --- Data Cleanup and Formatting ---
+
     final_summary["Practice_ID"] = final_summary["Practice_ID"].str.strip()
     final_summary["Practice_Name"] = final_summary["Practice_Name"].str.strip()
-    final_summary = final_summary.dropna(subset=["Practice_ID"])
+    final_summary["Practice_ID"] = pd.to_numeric(final_summary["Practice_ID"], errors="coerce").fillna(0)
 
-    final_summary = final_summary.drop(
-        columns=["Practice", "Referring Provider Practice", "Referring Doctor Practice"]
-    )
+    final_summary = final_summary.dropna(subset=["Practice_ID"])
+    final_summary = final_summary.drop(columns=["Practice", "Referring Provider Practice", "Referring Doctor Practice"])
 
     numeric_cols = [col for col in final_summary.columns if col not in ["Practice_Name", "Practice_ID"]]
     for col in numeric_cols:
